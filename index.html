@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Web ChatGPT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background-color: #f9f9f9;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+        .user-message {
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .bot-message {
+            background-color: #e1e1e1;
+            padding: 10px;
+            border-radius: 5px;
+            position: relative;
+        }
+        .bot-message.loading::after {
+            content: "Loading";
+            animation: loading 1s infinite;
+        }
+        @keyframes loading {
+            0% {
+                content: "Loading";
+            }
+            33% {
+                content: "Loading.";
+            }
+            66% {
+                content: "Loading..";
+            }
+            100% {
+                content: "Loading...";
+            }
+        }
+        #chat-container {
+            margin-bottom: 60px;
+        }
+        #chat-form {
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #f1f1f1;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+        }
+        #user-input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+        }
+        #user-input:focus {
+            outline: none;
+        }
+        #send-button,
+        #voice-button,
+        #upload-button {
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #send-button:hover,
+        #voice-button:hover,
+        #upload-button:hover {
+            background-color: #45a049;
+        }
+        #voice-button {
+            background-color: #4285f4;
+        }
+        #voice-button:hover {
+            background-color: #1a73e8;
+        }
+        #upload-button {
+            background-color: #808080;
+            margin-left: 0;
+            margin-right: 10px;
+            padding: 10px 12px;
+        }
+        #upload-button:hover {
+            background-color: #696969;
+        }
+        
+        .icon-white {
+            color: white !important;
+        }
+        @keyframes voice-animation {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        .thumbnail-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .thumbnail {
+            position: relative;
+            display: inline-block;
+        }
+        .thumbnail img,
+        .thumbnail video {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+        .remove-thumbnail {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transform: translate(50%, -50%);
+        }
+        
+        pre code {
+        white-space: pre-wrap;
+        word-break: break-all;
+        display: block;
+        overflow-x: auto;
+        max-width: 100%;
+        padding: 10px;
+        background-color: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        position: relative; /* Ensure relative positioning for button alignment */
+    }
+    code {
+        background-color: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 2px 4px;
+    }
+    .copy-btn {
+        display: inline-block;
+        padding: 5px 10px;
+        margin-top: 5px;
+        cursor: pointer;
+        font-size: 0.8em;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        transition: background-color 0.3s, transform 0.2s;
+        user-select: none;
+    }
+    .copy-btn:hover, .copy-btn:active {
+        background-color: #0056b3;
+        transform: scale(1.05);
+    }
+    .copy-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5);
+    }
+    #copy-popup {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #007bff;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        font-family: Arial, sans-serif;
+    }
+    #copy-popup i {
+        margin-right: 5px;
+    }
+    .code-block {
+    margin-bottom: 1em;
+    border-radius: 4px;
+    padding: 10px;
+    font-size: 1em;
+}
+
+.code-block h3 {
+    margin: 0 0 10px 0;
+    font-size: 0.9em;
+    color: #333;
+}
+pre {
+    margin: 0;
+    font-size: 1em;
+}
+code {
+    font-size: 1em;
+}
+</style>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="shortcut icon" href="https://telegra.ph/file/c1603a7e2cf99ab1ad084.jpg" type="image/x-icon" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-javascript.min.js"></script>
+</head>
+<body>
+    <div id="navside-container" data-include="navside.html"></div>
+
+    <div class="content">
+        <h1>Chat GPT</h1>
+        <div id="chat-container"></div>
+        <div class="thumbnail-container" id="thumbnail-container"></div>
+        <form id="chat-form">
+            <input type="file" id="file-input" accept="image/*" multiple style="display: none;">
+            <button type="button" id="upload-button"><i class="fa-solid fa-plus icon-white"></i></button>
+            <input type="text" id="user-input" placeholder="Type in here..." autocomplete="off">
+            <button type="submit" id="send-button" disabled><i class="fa fa-paper-plane icon-white"></i></button>
+            <button type="button" id="voice-button"><i class="fa fa-microphone icon-white"></i></button>
+        </form>
+    </div>
+
+    <div id="copy-popup">&#10004; Successfully copied!</div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "@google/generative-ai": "https://esm.run/@google/generative-ai"
+            }
+        }
+    </script>
+    <script type="module">
+        import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
+        
+        var isPlaying = false;
+        var audioElement;
+        var recognition;
+        var longPressTimer;
+        var isLongPress = false;
+        
+        const API_KEY = 'AIzaSyBXaxSrofFNIKNV7Za3QMsLe-7aeP0er2I'; // Replace with your actual API key
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        let chat;
+
+        const safetySettings = [
+            {
+                category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+                threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+            },
+        ];
+
+        async function fileToGenerativePart(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64Data = reader.result.split(',')[1];
+                    resolve({ inlineData: { data: base64Data, mimeType: file.type } });
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+        function cleanResponse(response) {
+    // Escape HTML entities to prevent XSS
+    let cleanedResponse = escapeHtml(response);
+
+    // Handle Markdown syntax for different languages
+    cleanedResponse = cleanedResponse
+        .replace(/```html([\s\S]*?)```/g, '<div class="code-block"><h3>HTML Code:</h3><pre><code class="language-html">$1</code></pre></div>') // HTML code blocks
+        .replace(/```javascript([\s\S]*?)```/g, '<div class="code-block"><h3>JavaScript Code:</h3><pre><code class="language-javascript">$1</code></pre></div>') // JavaScript code blocks
+        .replace(/```php([\s\S]*?)```/g, '<div class="code-block"><h3>PHP Code:</h3><pre><code class="language-php">$1</code></pre></div>') // PHP code blocks
+        .replace(/```python([\s\S]*?)```/g, '<div class="code-block"><h3>Python Code:</h3><pre><code class="language-python">$1</code></pre></div>') // Python code blocks
+        .replace(/```([\s\S]*?)```/g, '<div class="code-block"><h3>Code:</h3><pre><code class="language-text">$1</code></pre></div>') // Other code blocks
+        .replace(/`([^`]+)`/g, '<code>$1</code>') // Inline code
+        .replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>') // Bold
+        .replace(/(\*|_)(.*?)\1/g, '<em>$2</em>') // Italics
+
+    // Remove any remaining single *
+    cleanedResponse = cleanedResponse.replace(/\*/g, '');
+
+    return cleanedResponse;
+}
+
+        function stripHtmlTags(html) {
+            var tmp = document.createElement("DIV");
+            tmp.innerHTML = html;
+            return tmp.textContent || tmp.innerText || "";
+        }
+
+        async function sendMessage(prompt, file = null) {
+    clearGreeting();
+
+    if (!chat) {
+        chat = await genAI.getGenerativeModel({ model: "gemini-1.5-flash", safetySettings }).startChat({
+            history: [],
+            generationConfig: {
+                maxOutputTokens: 4000
+            }
+        });
+    }
+
+    const userMessage = $('<div>').addClass('message user-message').text(prompt);
+
+    if (file) {
+        const fileMessage = $('<div>').addClass('message user-message');
+        if (file.type.startsWith('image/')) {
+            const img = $('<img>').attr('src', URL.createObjectURL(file)).css({ width: '100px', height: '100px' });
+            fileMessage.append(img);
+        } else if (file.type.startsWith('video/')) {
+            const video = $('<video controls>').attr('src', URL.createObjectURL(file)).css({ width: '100px', height: '100px' });
+            fileMessage.append(video);
+        } else {
+            fileMessage.text(`File: ${file.name}`);
+        }
+        userMessage.append(fileMessage);
+    }
+
+    $('#chat-container').append(userMessage);
+
+    const botMessage = $('<div>').addClass('message bot-message loading').html('');
+    $('#chat-container').append(botMessage);
+
+    let result;
+
+    if (file) {
+        const f = await fileToGenerativePart(file);
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', safetySettings });
+        result = await model.generateContent([prompt, f]);
+    } else {
+        result = await chat.sendMessage(prompt);
+    }
+
+    let response = await result.response.text();
+    response = cleanResponse(response);
+
+    botMessage.removeClass('loading');
+    botMessage.html(response);
+
+    // Apply syntax highlighting after inserting response HTML
+    Prism.highlightAllUnder(botMessage[0]);
+
+    const codeBlocks = botMessage.find('pre code');
+    codeBlocks.each((index, codeBlock) => {
+        const copyBtn = $('<button>').addClass('copy-btn').html('<i class="fas fa-copy"></i> Copy');
+        $(codeBlock).after(copyBtn);
+        copyBtn.on('click', () => {
+            copyToClipboard($(codeBlock).text());
+        });
+    });
+
+    const plainTextResponse = stripHtmlTags(response);
+    playTextToSpeech(plainTextResponse);
+}
+
+        function clearGreeting() {
+            // Clear any greeting or placeholder messages if needed
+        }
+
+        function playTextToSpeech(text) {
+    if (isPlaying) {
+        audioElement.pause();
+        audioElement.currentTime = 0;
+    }
+
+    var audioUrl = 'https://api.streamelements.com/kappa/v2/speech?voice=Andika&text=' + encodeURIComponent(text);
+    audioElement = new Audio(audioUrl);
+    audioElement.play()
+        .then(function() {
+            $('#voice-button').html('<i class="fa fa-pause icon-white"></i>');
+            isPlaying = true;
+        })
+        .catch(function(error) {
+            console.error('Error playing audio:', error);
+        });
+
+    audioElement.onended = function() {
+        $('#voice-button').html('<i class="fa fa-microphone icon-white"></i>');
+        isPlaying = false;
+    };
+}
+
+function stopTextToSpeech() {
+    if (isPlaying) {
+        audioElement.pause();
+        isPlaying = false;
+        $('#voice-button').html('<i class="fa fa-microphone icon-white"></i>');
+    }
+}
+
+function startSpeechToText() {
+    recognition = new webkitSpeechRecognition();
+    recognition.onstart = function(){  
+        console.log("you can speak now");  
+    }  
+    recognition.onresult = function(event){  
+        var text = event.results[0][0].transcript;  
+        console.log(text);  
+        document.getElementById("user-input").value = text;
+        sendMessage(text);
+        $('#user-input').val(''); // Clear the input field
+    }
+    recognition.start();
+}
+
+        function handleFileUpload(event) {
+            const files = event.target.files;
+            const thumbnailContainer = $('#thumbnail-container');
+            thumbnailContainer.empty();
+
+            Array.from(files).forEach((file, index) => {
+                const thumbnail = $('<div>').addClass('thumbnail');
+                if (file.type.startsWith('image/')) {
+                    const img = $('<img>').attr('src', URL.createObjectURL(file));
+                    thumbnail.append(img);
+                } else if (file.type.startsWith('video/')) {
+                    const video = $('<video controls>').attr('src', URL.createObjectURL(file));
+                    thumbnail.append(video);
+                }
+
+                const removeButton = $('<button>').addClass('remove-thumbnail').html('&times;').on('click', () => {
+                    thumbnail.remove();
+                    if (thumbnailContainer.children().length === 0) {
+                        $('#send-button').prop('disabled', true);
+                    }
+                });
+
+                thumbnail.append(removeButton);
+                thumbnailContainer.append(thumbnail);
+            });
+
+            if (thumbnailContainer.children().length > 0) {
+                $('#send-button').prop('disabled', false);
+            }
+        }
+
+        function copyToClipboard(text) {
+    const textarea = document.createElement('textarea');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    textarea.value = text.replace(/<br\s*\/?>/gi, '\n');
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showCopyPopup();
+}
+
+
+        function showCopyPopup() {
+            const popup = $('#copy-popup');
+            popup.show();
+
+            setTimeout(() => {
+                popup.hide();
+            }, 2000);
+        }
+
+$(document).ready(function() {
+    $('#chat-form').submit(async function(event) {
+        event.preventDefault();
+        const userMessage = $('#user-input').val();
+        const file = $('#file-input')[0].files[0];
+        if (userMessage.trim() !== '' || file) {
+            sendMessage(userMessage, file);
+            $('#user-input').val('');
+            $('#file-input').val('');
+            $('#send-button').prop('disabled', true);
+            $('#thumbnail-container').empty(); // Clear thumbnails
+        }
+    });
+
+    $('#chat-form').on('submit', function(e) {
+        e.preventDefault();
+        var userInput = $('#user-input').val().trim();
+        var fileInput = $('#file-input')[0];
+        if (userInput) {
+            var file = fileInput.files[0];
+            sendMessage(userInput, file);
+            $('#user-input').val('');
+            $('#send-button').prop('disabled', true);
+            $('#file-input').val(''); // Clear file input
+            $('#thumbnail-container').empty(); // Clear thumbnails
+        }
+    });
+
+    $('#user-input').on('input', function() {
+        $('#send-button').prop('disabled', !$(this).val().trim());
+    });
+
+    $('#upload-button').on('click', function() {
+        $('#file-input').click();
+    });
+
+    $('#file-input').on('change', function(event) {
+        const files = event.target.files;
+        const thumbnailContainer = $('#thumbnail-container');
+        thumbnailContainer.empty(); // Clear previous thumbnails
+        Array.from(files).forEach((file, index) => {
+            const thumbnail = $('<div>').addClass('thumbnail');
+            if (file.type.startsWith('image/')) {
+                const img = $('<img>').attr('src', URL.createObjectURL(file));
+                thumbnail.append(img);
+            } else if (file.type.startsWith('video/')) {
+                const video = $('<video>').attr('src', URL.createObjectURL(file));
+                thumbnail.append(video);
+            }
+            const removeButton = $('<button>').addClass('remove-thumbnail').text('x').on('click', function() {
+                // Remove file from input
+                const dt = new DataTransfer();
+                const fileInput = $('#file-input')[0];
+                Array.from(fileInput.files).forEach((f, i) => {
+                    if (i !== index) dt.items.add(f); // Keep only files that are not removed
+                });
+                fileInput.files = dt.files;
+                // Remove thumbnail
+                thumbnail.remove();
+            });
+            thumbnail.append(removeButton);
+            thumbnailContainer.append(thumbnail);
+        });
+    });
+
+    $('#voice-button').on('mousedown', function(event) {
+        stopTextToSpeech(); // Stop TTS if it's playing
+        startSpeechToText();
+    }).on('mouseup', function(event) {
+        recognition.stop();
+        stopTextToSpeech(); // Ensure TTS stops when voice button is released
+    });
+
+    $('#voice-button').on('mousedown touchstart', function(event) {
+        event.preventDefault();
+        toggleButtonAnimation(true);
+        longPressTimer = setTimeout(function() {
+            isLongPress = true;
+            stopTextToSpeech(); // Stop TTS if it's playing
+            startSpeechToText();
+        }, 500);
+    }).on('mouseup touchend', function(event) {
+        event.preventDefault();
+        clearTimeout(longPressTimer);
+        if (!isLongPress) {
+            const message = $('#user-input').val().trim();
+            if (message !== '') {
+                sendMessage(message);
+                $('#user-input').val('');
+                $('#send-button').prop('disabled', true);
+            }
+        }
+        isLongPress = false;
+        toggleButtonAnimation(false);
+        stopTextToSpeech(); // Ensure TTS stops when voice button is released
+    }).on('mouseleave touchcancel', function(event) {
+        event.preventDefault();
+        clearTimeout(longPressTimer);
+        isLongPress = false;
+        toggleButtonAnimation(false);
+        stopTextToSpeech(); // Ensure TTS stops if touch/mouse leaves the button
+    });
+
+    function toggleButtonAnimation(isActive) {
+        var voiceButton = $('#voice-button');
+        if (isActive) {
+            voiceButton.css('transform', 'scale(1.2)');
+        } else {
+            voiceButton.css('transform', 'scale(1)');
+        }
+    }
+});
+
+        
+/** 
+ * Disable right-click of mouse, F12 key, and save key combinations on page 
+ */ 
+ document.addEventListener("contextmenu", function(e){ 
+ e.preventDefault(); 
+ }, false); 
+ document.addEventListener("keydown", function(e) { 
+ //document.onkeydown = function(e) { 
+ // "I" key 
+ if (e.ctrlKey && e.shiftKey && e.keyCode == 73) { 
+ disabledEvent(e); 
+ } 
+ // "J" key 
+ if (e.ctrlKey && e.shiftKey && e.keyCode == 74) { 
+ disabledEvent(e); 
+ } 
+ // "S" key + macOS 
+ if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) { 
+ disabledEvent(e); 
+ } 
+ // "U" key 
+ if (e.ctrlKey && e.keyCode == 85) { 
+ disabledEvent(e); 
+ } 
+ // "F12" key 
+ if (event.keyCode == 123) { 
+ disabledEvent(e); 
+ } 
+ // "C" key 
+ if (e.ctrlKey && event.keyCode == 67) { 
+ disabledEvent(e); 
+ } 
+ }, false); 
+ function disabledEvent(e){ 
+ if (e.stopPropagation){ 
+ e.stopPropagation(); 
+ } else if (window.event){ 
+ window.event.cancelBubble = true; 
+ } 
+ e.preventDefault(); 
+ return false; 
+ };
+    </script>
+</body>
+</html>

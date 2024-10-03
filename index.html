@@ -230,6 +230,29 @@ pre {
 code {
     font-size: 1em;
 }
+.copy-button {
+  position: absolute;
+  top: 2px;
+  right: 10px;
+  cursor: pointer;
+  color: #fff;
+  background: gray;
+  border-radius: 0.5em;
+  padding: 1px 5px; /* Reduced padding for a smaller button */
+  font-size: 0.7em; /* Smaller font size */
+  line-height: 1; /* Adjust line height to match font size */
+  display: flex; /* Center align text */
+  align-items: center;
+  justify-content: center;
+  z-index: 10; /* Ensure the button is clickable */
+  user-select: none; /* Prevent user selection of the button */
+}
+
+.copy-button:hover {
+  color: #000;
+  background: darkgray; /* Change background on hover for better visibility */
+}
+
 </style>
     <link rel="stylesheet" href="styles.css">
     <link rel="shortcut icon" href="https://telegra.ph/file/c1603a7e2cf99ab1ad084.jpg" type="image/x-icon" />
@@ -242,6 +265,7 @@ code {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-javascript.min.js"></script>
 </head>
 <body>
@@ -337,6 +361,54 @@ code {
             tmp.innerHTML = html;
             return tmp.textContent || tmp.innerText || "";
         }
+        
+
+  function setupMessageCopying(element) {
+    // Create a copy button element
+    const copyButton = document.createElement("span");
+    copyButton.innerText = "Copy";
+    copyButton.classList.add("copy-button");
+    copyButton.addEventListener("click", (e) => {
+      e.stopPropagation(); // Prevent click event from bubbling up
+      e.preventDefault(); // Prevent default action
+      
+      // Hide the copy button temporarily
+      copyButton.style.display = "none";
+      
+      // Copy the message text (excluding the copy button text)
+      const messageText = element.contents().filter(function() {
+        return this.nodeType === Node.TEXT_NODE;
+      }).text().trim();
+      copyToClipboard(messageText);
+
+      // Show feedback and re-display the button
+      copyButton.innerText = "Copied!";
+      setTimeout(() => {
+        copyButton.innerText = "Copy";
+        copyButton.style.display = "inline"; // Show the copy button again
+      }, 2000);
+      
+      // Show the copy button again
+        copyButton.style.display = "inline";
+
+
+      // Deselect the text
+      window.getSelection().removeAllRanges();
+
+      // Display a SweetAlert pop-up
+      Swal.fire({
+        icon: 'success',
+        title: 'Text copied to clipboard',
+        showConfirmButton: false,
+        timer: 1000
+      });
+    });
+
+    // Append the copy button to the message element
+    element.css('position', 'relative');
+    element.append(copyButton);
+  }
+
 
         async function sendMessage(prompt, file = null) {
     clearGreeting();
@@ -401,7 +473,15 @@ code {
 
     const plainTextResponse = stripHtmlTags(response);
     playTextToSpeech(plainTextResponse);
-}
+
+$('.user-message, .bot-message').each(function() {
+        setupMessageCopying($(this));
+      });
+    }
+
+    $(document).ready(() => {
+      initializeCopying();
+    });
 
         function clearGreeting() {
             // Clear any greeting or placeholder messages if needed
